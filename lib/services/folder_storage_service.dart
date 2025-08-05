@@ -10,7 +10,7 @@ class FolderStorageService {
     await prefs.setString(_key, path);
   }
 
-  Future<String?> loadPath() async {
+  Future<String?> getPath() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_key);
   }
