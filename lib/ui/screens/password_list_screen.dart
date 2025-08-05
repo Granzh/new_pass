@@ -1,9 +1,9 @@
 // lib/ui/screens/password_list_screen.dart
 import 'package:flutter/material.dart';
 
-import '../models/password_entry.dart';
-import '../services/password_directory_prefs.dart';
-import '../utils/file_utils.dart';
+import '../../models/password_entry.dart';
+import '../../services/password_directory_prefs.dart';
+import '../../utils/file_utils.dart';
 
 class PasswordListScreen extends StatefulWidget {
   const PasswordListScreen({super.key});

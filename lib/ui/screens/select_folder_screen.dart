@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../services/password_directory_prefs.dart';
+import '../../services/password_directory_prefs.dart';
 
 class SelectFolderScreen extends StatefulWidget {
   const SelectFolderScreen({super.key});

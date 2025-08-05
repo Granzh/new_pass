@@ -1,4 +1,4 @@
-import 'gpg_key_memory.dart';
+import '../memory/gpg_key_memory.dart';
 import 'package:openpgp/openpgp.dart';
 
 class GPGEncryptionService {

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:new_pass/services/gpg_file_store.dart';
-import 'package:new_pass/services/gpg_key_memory.dart';
-import 'package:new_pass/services/gpg_encryption_service.dart';
+import 'package:new_pass/services/files/gpg_file_store.dart';
+import 'package:new_pass/services/memory/gpg_key_memory.dart';
+import 'package:new_pass/services/crypto/gpg_encryption_service.dart';
 import 'package:path/path.dart' as p;
 
 class PasswordManagerService {

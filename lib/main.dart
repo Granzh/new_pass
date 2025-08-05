@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:new_pass/services/gpg_key_storage.dart';
+import 'package:new_pass/services/storage/gpg_key_storage.dart';
 import 'package:new_pass/services/password_directory_prefs.dart';
 import 'package:new_pass/services/password_manager_service.dart';
-import 'package:new_pass/ui/init_gpg_screen.dart';
-import 'package:new_pass/ui/new_password_screen.dart';
-import 'package:new_pass/ui/password_list_screen.dart';
-import 'package:new_pass/ui/password_view_screen.dart';
-import 'package:new_pass/ui/select_folder_screen.dart';
+import 'package:new_pass/ui/screens/init_gpg_screen.dart';
+import 'package:new_pass/ui/screens/new_password_screen.dart';
+import 'package:new_pass/ui/screens/password_list_screen.dart';
+import 'package:new_pass/ui/screens/password_view_screen.dart';
+import 'package:new_pass/ui/screens/select_folder_screen.dart';
 
 import 'di/locator.dart';
 

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/gpg_key_memory.dart';
-import '../services/gpg_key_storage.dart';
-import '../services/gpg_encryption_service.dart';
+import '../../services/memory/gpg_key_memory.dart';
+import '../../services/storage/gpg_key_storage.dart';
+import '../../services/crypto/gpg_encryption_service.dart';
 
 class PasswordViewScreen extends StatefulWidget {
   const PasswordViewScreen({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:new_pass/services/gpg_key_memory.dart';
+import 'package:new_pass/services/memory/gpg_key_memory.dart';
 import 'package:openpgp/openpgp.dart';
 
-import '../services/gpg_key_storage.dart';
+import '../../services/storage/gpg_key_storage.dart';
 
 class InitGPGScreen extends StatefulWidget {
   const InitGPGScreen({super.key});
