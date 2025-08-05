@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:new_pass/services/gpg_key_storage.dart';
 import 'package:new_pass/services/password_directory_prefs.dart';
-import 'package:new_pass/services/gpg_key_memory.dart';
+import 'package:new_pass/services/password_manager_service.dart';
 import 'package:new_pass/ui/init_gpg_screen.dart';
 import 'package:new_pass/ui/new_password_screen.dart';
 import 'package:new_pass/ui/password_list_screen.dart';
 import 'package:new_pass/ui/password_view_screen.dart';
 import 'package:new_pass/ui/select_folder_screen.dart';
+
+import 'di/locator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,8 @@ void main() async {
   } else {
     initialRoute = '/home';
   }
+
+  final manager = locator<PasswordManagerService>();
 
   runApp(MyApp(initialRoute: initialRoute));
 }

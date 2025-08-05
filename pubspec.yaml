@@ -52,6 +52,8 @@ dev_dependencies:
   openpgp: ^3.10.5
   flutter_dotenv: ^5.1.0
 
+  get_it: ^8.2.0
+
   flutter_secure_storage: ^9.2.4
 
   path_provider: ^2.1.2
