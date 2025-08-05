@@ -23,7 +23,7 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
   }
 
   Future<void> _loadTree() async {
-    final folderPath = await PasswordDirectoryPrefs().load();
+    final folderPath = await PasswordDirectoryPrefs.load();
     if (folderPath == null) {
       if (context.mounted) Navigator.pushReplacementNamed(context, '/select-folder');
       return;

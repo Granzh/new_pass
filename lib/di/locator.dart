@@ -17,9 +17,12 @@ void setupLocator(Directory passwordDirectory) {
   locator.registerSingleton(GPGKeyMemory());
   locator.registerSingleton(GPGEncryptionService(locator<GPGKeyMemory>()));
   locator.registerSingleton(GPGFileStore(passwordDirectory));
+  /*
   locator.registerSingleton(PasswordManagerService(
     locator<GPGKeyMemory>(),
     locator<GPGEncryptionService>(),
     locator<GPGFileStore>(),
   ));
+
+   */
 }

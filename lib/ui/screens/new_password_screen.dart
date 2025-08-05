@@ -56,7 +56,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     try {
       final encrypted = await _passwordService.encrypt(content);
 
-      final folderPath = await PasswordDirectoryPrefs().load();
+      final folderPath = await PasswordDirectoryPrefs.load();
       if (folderPath == null) throw Exception('Папка не выбрана');
 
       final storeService = GPGFileStore(Directory(folderPath));

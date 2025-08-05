@@ -13,10 +13,9 @@ import 'di/locator.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final folderService = PasswordDirectoryPrefs();
   final gpgService = GPGKeyStorage();
 
-  final folderPath = await folderService.load();
+  final folderPath = await PasswordDirectoryPrefs.load();
   final keys = await gpgService.loadKeys();
 
   // определим, куда перекинуть при старте

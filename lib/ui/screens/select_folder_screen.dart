@@ -13,7 +13,6 @@ class SelectFolderScreen extends StatefulWidget {
 class _SelectFolderScreenState extends State<SelectFolderScreen> {
   String? selectedPath;
   bool loading = false;
-  final folderService = PasswordDirectoryPrefs();
 
   Future<void> pickFolder() async {
     String? path = await FilePicker.platform.getDirectoryPath();
@@ -28,7 +27,7 @@ class _SelectFolderScreenState extends State<SelectFolderScreen> {
     if (selectedPath == null) return;
     setState(() => loading = true);
 
-    await folderService.save(selectedPath!);
+    await PasswordDirectoryPrefs.save(selectedPath!);
 
     // Здесь можно создать структуру папки или проверить её
 
