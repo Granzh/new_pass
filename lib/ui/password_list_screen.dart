@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/password_entry.dart';
-import '../services/folder_storage_service.dart';
+import '../services/password_directory_prefs.dart';
 import '../utils/file_utils.dart';
 
 class PasswordListScreen extends StatefulWidget {
@@ -23,7 +23,7 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
   }
 
   Future<void> _loadTree() async {
-    final folderPath = await FolderStorageService().getPath();
+    final folderPath = await PasswordDirectoryPrefs().load();
     if (folderPath == null) {
       if (context.mounted) Navigator.pushReplacementNamed(context, '/select-folder');
       return;

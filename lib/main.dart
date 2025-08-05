@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:new_pass/services/folder_storage_service.dart';
-import 'package:new_pass/services/gpg_key_service.dart';
+import 'package:new_pass/services/gpg_key_storage.dart';
+import 'package:new_pass/services/password_directory_prefs.dart';
+import 'package:new_pass/services/gpg_key_memory.dart';
 import 'package:new_pass/ui/init_gpg_screen.dart';
 import 'package:new_pass/ui/new_password_screen.dart';
 import 'package:new_pass/ui/password_list_screen.dart';
@@ -10,10 +11,10 @@ import 'package:new_pass/ui/select_folder_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final folderService = FolderStorageService();
-  final gpgService = GPGStorageService();
+  final folderService = PasswordDirectoryPrefs();
+  final gpgService = GPGKeyStorage();
 
-  final folderPath = await folderService.getPath();
+  final folderPath = await folderService.load();
   final keys = await gpgService.loadKeys();
 
   // определим, куда перекинуть при старте

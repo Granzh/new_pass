@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:new_pass/services/gpg_key_service.dart';
+import 'package:new_pass/services/gpg_key_memory.dart';
 import 'package:openpgp/openpgp.dart';
+
+import '../services/gpg_key_storage.dart';
 
 class InitGPGScreen extends StatefulWidget {
   const InitGPGScreen({super.key});
@@ -15,7 +17,7 @@ class _InitGPGScreenState extends State<InitGPGScreen> {
   final _passphraseController = TextEditingController();
   bool loading = false;
 
-  final gpgStorage = GPGStorageService();
+  final gpgStorage = GPGKeyStorage();
 
   Future<void> _generateKeys() async {
     setState(() => loading = true);

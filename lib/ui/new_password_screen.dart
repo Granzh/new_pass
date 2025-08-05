@@ -2,10 +2,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import '../services/PasswordStoreService.dart';
-import '../services/folder_storage_service.dart';
-import '../services/gpg_key_service.dart';
-import '../services/io_file_service.dart';
+import '../services/gpg_file_store.dart';
+import '../services/gpg_key_storage.dart';
+import '../services/password_directory_prefs.dart';
+import '../services/gpg_key_memory.dart';
+import '../services/gpg_encryption_service.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   const NewPasswordScreen({super.key});
@@ -19,8 +20,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   final _contentController = TextEditingController();
   bool _saving = false;
 
-  late final GPGKeyService _keyService;
-  late final PasswordService _passwordService;
+  late final GPGKeyMemory _keyService;
+  late final GPGEncryptionService _passwordService;
 
   @override
   void initState() {
@@ -29,19 +30,19 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   }
 
   Future<void> _initializeGPG() async {
-    final keys = await GPGStorageService().loadKeys();
+    final keys = await GPGKeyStorage().loadKeys();
     if (keys['private'] == null || keys['public'] == null || keys['passphrase'] == null) {
       throw Exception('GPG ключи не найдены');
     }
 
-    _keyService = GPGKeyService();
-    await _keyService.loadKeys(
+    _keyService = GPGKeyMemory();
+    await _keyService.load(
       privateKey: keys['private']!,
       publicKey: keys['public']!,
       passphrase: keys['passphrase']!,
     );
 
-    _passwordService = PasswordService(_keyService);
+    _passwordService = GPGEncryptionService(_keyService);
   }
 
   Future<void> _savePassword() async {
@@ -53,14 +54,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     setState(() => _saving = true);
 
     try {
-      final encrypted = await _passwordService.encryptPassword(content);
+      final encrypted = await _passwordService.encrypt(content);
 
-      final folderPath = await FolderStorageService().getPath();
+      final folderPath = await PasswordDirectoryPrefs().load();
       if (folderPath == null) throw Exception('Папка не выбрана');
 
-      final storeService = PasswordStoreService(Directory(folderPath));
+      final storeService = GPGFileStore(Directory(folderPath));
       final relativePath = '$name.gpg';
-      await storeService.writeEncryptedFile(relativePath, encrypted);
+      await storeService.writeEncrypted(relativePath, encrypted);
 
       if (context.mounted) {
         Navigator.pop(context); // вернуться к списку паролей

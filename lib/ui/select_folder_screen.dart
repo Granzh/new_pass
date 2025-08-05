@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../services/folder_storage_service.dart';
+import '../services/password_directory_prefs.dart';
 
 class SelectFolderScreen extends StatefulWidget {
   const SelectFolderScreen({super.key});
@@ -13,7 +13,7 @@ class SelectFolderScreen extends StatefulWidget {
 class _SelectFolderScreenState extends State<SelectFolderScreen> {
   String? selectedPath;
   bool loading = false;
-  final folderService = FolderStorageService();
+  final folderService = PasswordDirectoryPrefs();
 
   Future<void> pickFolder() async {
     String? path = await FilePicker.platform.getDirectoryPath();
@@ -28,7 +28,7 @@ class _SelectFolderScreenState extends State<SelectFolderScreen> {
     if (selectedPath == null) return;
     setState(() => loading = true);
 
-    await folderService.savePath(selectedPath!);
+    await folderService.save(selectedPath!);
 
     // Здесь можно создать структуру папки или проверить её
 

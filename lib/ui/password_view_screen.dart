@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/gpg_key_service.dart';
-import '../services/io_file_service.dart';
+import '../services/gpg_key_memory.dart';
+import '../services/gpg_key_storage.dart';
+import '../services/gpg_encryption_service.dart';
 
 class PasswordViewScreen extends StatefulWidget {
   const PasswordViewScreen({super.key});
@@ -30,21 +31,21 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
     try {
       final encrypted = await File(filePath).readAsString();
 
-      final gpgStorage = GPGStorageService();
+      final gpgStorage = GPGKeyStorage();
       final keys = await gpgStorage.loadKeys();
       if (keys['private'] == null || keys['public'] == null || keys['passphrase'] == null) {
         throw Exception('Ключи не найдены');
       }
 
-      final keyService = GPGKeyService();
-      await keyService.loadKeys(
+      final keyService = GPGKeyMemory();
+      await keyService.load(
         privateKey: keys['private']!,
         publicKey: keys['public']!,
         passphrase: keys['passphrase']!,
       );
 
-      final passwordService = PasswordService(keyService);
-      final decrypted = await passwordService.decryptPassword(encrypted);
+      final passwordService = GPGEncryptionService(keyService);
+      final decrypted = await passwordService.decrypt(encrypted);
 
       final lines = decrypted.split('\n');
       setState(() {
