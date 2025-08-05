@@ -1,32 +1,32 @@
-import 'dart:io';
-
 import 'package:new_pass/services/files/gpg_file_store.dart';
-import 'package:new_pass/services/memory/gpg_key_memory.dart';
 import 'package:new_pass/services/crypto/gpg_encryption_service.dart';
 import 'package:path/path.dart' as p;
 
-class PasswordManagerService {
-  final GPGKeyMemory keyMemory;
-  final GPGEncryptionService crypto;
-  final GPGFileStore fileStore;
 
-  PasswordManagerService(this.keyMemory, this.crypto, this.fileStore);
+class PasswordManagerService {
+  final GPGEncryptionService _crypto;
+  final GPGFileStore _fileStore;
+
+  PasswordManagerService({
+    required GPGEncryptionService crypto,
+    required GPGFileStore fileStore
+  }) : _crypto = crypto, _fileStore = fileStore;
 
   Future<List<String>> listAll() async {
-    return fileStore.listPasswordFiles().map((e) => p.basenameWithoutExtension(e.path)).toList();
+    return _fileStore.listPasswordFiles().map((e) => p.basenameWithoutExtension(e.path)).toList();
   }
 
   Future<String> loadDecrypted(String relativePath) async {
-    final encrypted = await fileStore.readEncrypted(relativePath);
-    return crypto.decrypt(encrypted);
+    final encrypted = await _fileStore.readEncrypted(relativePath);
+    return _crypto.decrypt(encrypted);
   }
 
   Future<void> saveEncrypted(String relativePath, String plainText) async {
-    final encrypted = await crypto.encrypt(plainText);
-    await fileStore.writeEncrypted(relativePath, encrypted);
+    final encrypted = await _crypto.encrypt(plainText);
+    await _fileStore.writeEncrypted(relativePath, encrypted);
   }
 
   Future<void> delete(String relativePath) async {
-    await fileStore.deletePassword(relativePath);
+    await _fileStore.deletePassword(relativePath);
   }
 }
