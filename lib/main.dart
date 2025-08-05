@@ -1,69 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:new_pass/services/folder_storage_service.dart';
+import 'package:new_pass/services/gpg_key_service.dart';
+import 'package:new_pass/ui/init_gpg_screen.dart';
+import 'package:new_pass/ui/new_password_screen.dart';
+import 'package:new_pass/ui/password_list_screen.dart';
+import 'package:new_pass/ui/password_view_screen.dart';
+import 'package:new_pass/ui/select_folder_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final folderService = FolderStorageService();
+  final gpgService = GPGStorageService();
+
+  final folderPath = await folderService.getPath();
+  final keys = await gpgService.loadKeys();
+
+  // определим, куда перекинуть при старте
+  final String initialRoute;
+  if (folderPath == null) {
+    initialRoute = '/select-folder';
+  } else if (keys['private'] == null || keys['public'] == null || keys['passphrase'] == null) {
+    initialRoute = '/init-gpg';
+  } else {
+    initialRoute = '/home';
+  }
+
+  runApp(MyApp(initialRoute: initialRoute));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({super.key, required this.initialRoute});
 
-
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'FlutterPass',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      initialRoute: initialRoute,
+      routes: {
+        '/select-folder': (context) => const SelectFolderScreen(),
+        '/init-gpg': (context) => const InitGPGScreen(),
+        '/home': (context) => const PasswordListScreen(),
+        '/password/view': (context) => const PasswordViewScreen(),
+        '/password/new': (context) => const NewPasswordScreen(),
+      },
     );
   }
 }
