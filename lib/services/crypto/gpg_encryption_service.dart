@@ -4,7 +4,7 @@ import 'package:openpgp/openpgp.dart';
 class GPGEncryptionService {
   final GPGKeyMemory keyMemory;
 
-  GPGEncryptionService(this.keyMemory);
+  GPGEncryptionService({required this.keyMemory});
 
   Future<String> encrypt(String content) async {
     if (!keyMemory.isInitialized) throw Exception('GPG public key not loaded');

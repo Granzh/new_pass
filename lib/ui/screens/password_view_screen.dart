@@ -44,7 +44,7 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
       );
 
 
-      final passwordService = GPGEncryptionService(keyService);
+      final passwordService = GPGEncryptionService(keyMemory: keyService);
       final decrypted = await passwordService.decrypt(encrypted);
 
       final lines = decrypted.split('\n');

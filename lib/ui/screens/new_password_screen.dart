@@ -42,7 +42,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
     );
 
 
-    _passwordService = GPGEncryptionService(_keyService);
+    _passwordService = GPGEncryptionService(keyMemory: _keyService);
   }
 
   Future<void> _savePassword() async {
