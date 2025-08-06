@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 class GPGFileStore {
   final Directory root;
 
-  GPGFileStore(this.root);
+  GPGFileStore({required this.root});
 
   List<FileSystemEntity> listPasswordFiles() {
     return root

@@ -59,7 +59,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       final folderPath = await PasswordDirectoryPrefs.load();
       if (folderPath == null) throw Exception('Папка не выбрана');
 
-      final storeService = GPGFileStore(Directory(folderPath));
+      final storeService = GPGFileStore(root:Directory(folderPath));
       final relativePath = '$name.gpg';
       await storeService.writeEncrypted(relativePath, encrypted);
 
