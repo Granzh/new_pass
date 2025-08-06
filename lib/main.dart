@@ -30,7 +30,7 @@ void main() async {
     initialRoute = '/home';
   }
 
-  final manager = locator<PasswordManagerService>();
+  // final manager = locator<PasswordManagerService>();
 
   runApp(MyApp(initialRoute: initialRoute));
 }

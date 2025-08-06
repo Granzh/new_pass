@@ -34,18 +34,27 @@ class MessageLookup extends MessageLookupByLibrary {
     "deletePasswordMessage": MessageLookupByLibrary.simpleMessage(
       "This action is irreversible.",
     ),
+    "digits": MessageLookupByLibrary.simpleMessage("Digits"),
     "error": MessageLookupByLibrary.simpleMessage("Error"),
     "generateKeys": MessageLookupByLibrary.simpleMessage("Generate keys"),
+    "generatePassword": MessageLookupByLibrary.simpleMessage(
+      "Generate password",
+    ),
     "gpgEmailController": MessageLookupByLibrary.simpleMessage("Email"),
     "gpgNameController": MessageLookupByLibrary.simpleMessage("Name"),
     "gpgPassphraseController": MessageLookupByLibrary.simpleMessage(
       "Passphrase",
     ),
+    "length": MessageLookupByLibrary.simpleMessage("Length"),
+    "lowercase": MessageLookupByLibrary.simpleMessage("Lowercase"),
     "newPassword": MessageLookupByLibrary.simpleMessage("New Password"),
     "notes": MessageLookupByLibrary.simpleMessage("Notes"),
     "password": MessageLookupByLibrary.simpleMessage("Password"),
     "passwordContent": MessageLookupByLibrary.simpleMessage(
       "Content, first line - password",
+    ),
+    "passwordGeneratorTitle": MessageLookupByLibrary.simpleMessage(
+      "Password generator",
     ),
     "passwordName": MessageLookupByLibrary.simpleMessage(
       "Name (example: github/account)",
@@ -53,6 +62,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("Save"),
     "selectFolder": MessageLookupByLibrary.simpleMessage("Select folder"),
     "selectedFolder": MessageLookupByLibrary.simpleMessage("Selected folder"),
+    "symbols": MessageLookupByLibrary.simpleMessage("Symbols"),
+    "uppercase": MessageLookupByLibrary.simpleMessage("Uppercase"),
+    "use": MessageLookupByLibrary.simpleMessage("use"),
     "yourPasswords": MessageLookupByLibrary.simpleMessage("Your passwords"),
   };
 }

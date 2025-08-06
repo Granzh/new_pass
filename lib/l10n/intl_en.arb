@@ -17,11 +17,19 @@
   "gpgPassphraseController": "Passphrase",
   "newPassword": "New Password",
   "error": "Error",
+  "length": "Length",
+  "lowercase": "Lowercase",
+  "uppercase": "Uppercase",
+  "digits": "Digits",
+  "symbols": "Symbols",
+  "use": "use",
   "passwordName": "Name (example: github/account)",
   "passwordContent": "Content, first line - password",
   "yourPasswords": "Your passwords",
   "deletePassword": "Delete password?",
   "deletePasswordMessage": "This action is irreversible.",
   "decryptionError": "Decryption error",
-  "copied": "Copied"
+  "copied": "Copied",
+  "passwordGeneratorTitle": "Password generator",
+  "generatePassword": "Generate password"
 }

@@ -169,6 +169,36 @@ class S {
     return Intl.message('Error', name: 'error', desc: '', args: []);
   }
 
+  /// `Length`
+  String get length {
+    return Intl.message('Length', name: 'length', desc: '', args: []);
+  }
+
+  /// `Lowercase`
+  String get lowercase {
+    return Intl.message('Lowercase', name: 'lowercase', desc: '', args: []);
+  }
+
+  /// `Uppercase`
+  String get uppercase {
+    return Intl.message('Uppercase', name: 'uppercase', desc: '', args: []);
+  }
+
+  /// `Digits`
+  String get digits {
+    return Intl.message('Digits', name: 'digits', desc: '', args: []);
+  }
+
+  /// `Symbols`
+  String get symbols {
+    return Intl.message('Symbols', name: 'symbols', desc: '', args: []);
+  }
+
+  /// `use`
+  String get use {
+    return Intl.message('use', name: 'use', desc: '', args: []);
+  }
+
   /// `Name (example: github/account)`
   String get passwordName {
     return Intl.message(
@@ -232,6 +262,26 @@ class S {
   /// `Copied`
   String get copied {
     return Intl.message('Copied', name: 'copied', desc: '', args: []);
+  }
+
+  /// `Password generator`
+  String get passwordGeneratorTitle {
+    return Intl.message(
+      'Password generator',
+      name: 'passwordGeneratorTitle',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Generate password`
+  String get generatePassword {
+    return Intl.message(
+      'Generate password',
+      name: 'generatePassword',
+      desc: '',
+      args: [],
+    );
   }
 }
 

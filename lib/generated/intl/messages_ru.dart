@@ -35,8 +35,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "deletePasswordMessage": MessageLookupByLibrary.simpleMessage(
       "Это действие необратимо.",
     ),
+    "digits": MessageLookupByLibrary.simpleMessage("Цифры"),
     "error": MessageLookupByLibrary.simpleMessage("Ошибка"),
     "generateKeys": MessageLookupByLibrary.simpleMessage("Сгенерировать ключи"),
+    "generatePassword": MessageLookupByLibrary.simpleMessage(
+      "Сгенерировать пароль",
+    ),
     "gpgEmailController": MessageLookupByLibrary.simpleMessage("Email"),
     "gpgNameController": MessageLookupByLibrary.simpleMessage(
       "Имя (на английском)",
@@ -44,11 +48,16 @@ class MessageLookup extends MessageLookupByLibrary {
     "gpgPassphraseController": MessageLookupByLibrary.simpleMessage(
       "Парольная фраза (на английском)",
     ),
+    "length": MessageLookupByLibrary.simpleMessage("Длина"),
+    "lowercase": MessageLookupByLibrary.simpleMessage("Маленькие буквы"),
     "newPassword": MessageLookupByLibrary.simpleMessage("Новый пароль"),
     "notes": MessageLookupByLibrary.simpleMessage("Комментарий"),
     "password": MessageLookupByLibrary.simpleMessage("Пароль"),
     "passwordContent": MessageLookupByLibrary.simpleMessage(
       "Содержимое, первая строка - пароль",
+    ),
+    "passwordGeneratorTitle": MessageLookupByLibrary.simpleMessage(
+      "Генератор пароля",
     ),
     "passwordName": MessageLookupByLibrary.simpleMessage(
       "Имя (например: github/account)",
@@ -56,6 +65,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "save": MessageLookupByLibrary.simpleMessage("Сохранить"),
     "selectFolder": MessageLookupByLibrary.simpleMessage("Выбрать папку"),
     "selectedFolder": MessageLookupByLibrary.simpleMessage("Выбранная папка"),
+    "symbols": MessageLookupByLibrary.simpleMessage("Символы"),
+    "uppercase": MessageLookupByLibrary.simpleMessage("Большие буквы"),
+    "use": MessageLookupByLibrary.simpleMessage("Использовать"),
     "yourPasswords": MessageLookupByLibrary.simpleMessage("Ваши пароли"),
   };
 }

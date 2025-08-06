@@ -8,6 +8,7 @@ import '../../services/storage/gpg_key_storage.dart';
 import '../../services/password_directory_prefs.dart';
 import '../../services/memory/gpg_key_memory.dart';
 import '../../services/crypto/gpg_encryption_service.dart';
+import '../widgets/password_generator_dialog.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   const NewPasswordScreen({super.key});
@@ -105,6 +106,22 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               ),
             ),
             const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.password),
+              label: Text(l10n.generatePassword),
+              onPressed: () async {
+                final generated = await showDialog<String>(
+                  context: context,
+                  builder: (_) => const PasswordGeneratorDialog(),
+                );
+
+                if (generated != null) {
+                  setState(() {
+                    _contentController.text = generated;
+                  });
+                }
+              },
+            ),
             ElevatedButton(
               onPressed: _saving ? null : _savePassword,
               child: _saving

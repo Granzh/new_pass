@@ -13,16 +13,14 @@ final locator = GetIt.instance;
 void setupLocator(Directory passwordDirectory) {
   locator.registerLazySingleton(() => PasswordDirectoryPrefs());
   locator.registerLazySingleton(() => GPGKeyStorage());
-
-  locator.registerSingleton(GPGKeyMemory());
+  /*
+  locator.registerSingleton(GPGKeyMemory(gpgPublicKey, gpgPrivateKey, gpgPassphrase));
   locator.registerSingleton(GPGEncryptionService(locator<GPGKeyMemory>()));
   locator.registerSingleton(GPGFileStore(passwordDirectory));
-  /*
+
   locator.registerSingleton(PasswordManagerService(
     locator<GPGKeyMemory>(),
     locator<GPGEncryptionService>(),
     locator<GPGFileStore>(),
-  ));
-
-   */
+  )); */
 }

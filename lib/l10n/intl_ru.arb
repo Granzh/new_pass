@@ -17,11 +17,19 @@
   "gpgPassphraseController": "Парольная фраза (на английском)",
   "newPassword": "Новый пароль",
   "error": "Ошибка",
+  "length": "Длина",
+  "lowercase": "Маленькие буквы",
+  "uppercase": "Большие буквы",
+  "digits": "Цифры",
+  "symbols": "Символы",
+  "use": "Использовать",
   "passwordName": "Имя (например: github/account)",
   "passwordContent": "Содержимое, первая строка - пароль",
   "yourPasswords": "Ваши пароли",
   "deletePassword": "Удалить пароль?",
   "deletePasswordMessage": "Это действие необратимо.",
   "decryptionError": "Ошибка расшифровки",
-  "copied": "Скопировано"
+  "copied": "Скопировано",
+  "passwordGeneratorTitle": "Генератор пароля",
+  "generatePassword": "Сгенерировать пароль"
 }
