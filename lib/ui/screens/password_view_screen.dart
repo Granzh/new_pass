@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../generated/l10n.dart';
 import '../../services/memory/gpg_key_memory.dart';
 import '../../services/storage/gpg_key_storage.dart';
 import '../../services/crypto/gpg_encryption_service.dart';
@@ -28,13 +29,14 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
   }
 
   Future<void> _loadPassword() async {
+    final l10n = S.of(context);
     try {
       final encrypted = await File(filePath).readAsString();
 
       final gpgStorage = GPGKeyStorage();
       final keys = await gpgStorage.loadKeys();
       if (keys['private'] == null || keys['public'] == null || keys['passphrase'] == null) {
-        throw Exception('Ключи не найдены');
+        throw Exception('keys not found');
       }
 
       final keyService = GPGKeyMemory(
@@ -60,7 +62,7 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Ошибка расшифровки'),
+          title: Text(l10n.decryptionError),
           content: Text(e.toString()),
         ),
       );
@@ -68,21 +70,23 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
   }
 
   void _copyToClipboard(String text) {
+    final l10n = S.of(context);
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Пароль скопирован')),
+      SnackBar(content: Text(l10n.copied)),
     );
   }
 
   Future<void> _deleteFile() async {
+    final l10n = S.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Удалить пароль?'),
-        content: const Text('Это действие необратимо.'),
+        title: Text(l10n.deletePassword),
+        content: Text(l10n.deletePasswordMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Удалить')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(l10n.delete)),
         ],
       ),
     );
@@ -95,6 +99,7 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
     final fileName = filePath.split(Platform.pathSeparator).last.replaceAll('.gpg', '');
 
     return Scaffold(
@@ -114,17 +119,17 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Пароль:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l10n.password, style: TextStyle(fontWeight: FontWeight.bold)),
             SelectableText(password ?? '', style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () => _copyToClipboard(password ?? ''),
               icon: const Icon(Icons.copy),
-              label: const Text('Скопировать'),
+              label: Text(l10n.copy),
             ),
             if (note != null) ...[
               const SizedBox(height: 24),
-              const Text('Комментарий:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.comment, style: TextStyle(fontWeight: FontWeight.bold)),
               SelectableText(note!, style: const TextStyle(fontSize: 16)),
             ]
           ],

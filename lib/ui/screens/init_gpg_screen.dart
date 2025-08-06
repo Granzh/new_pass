@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:new_pass/services/memory/gpg_key_memory.dart';
 import 'package:openpgp/openpgp.dart';
+import 'package:new_pass/generated/l10n.dart';
 
 import '../../services/storage/gpg_key_storage.dart';
 
@@ -59,30 +59,31 @@ class _InitGPGScreenState extends State<InitGPGScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Generate Keys')),
+      appBar: AppBar(title: Text(l10n.appTitle)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: l10n.gpgNameController),
             ),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+              decoration: InputDecoration(labelText: l10n.gpgEmailController),
             ),
             TextField(
               controller: _passphraseController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Passphrase'),
+              decoration: InputDecoration(labelText: l10n.gpgPassphraseController),
             ),
 
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: loading ? null : _generateKeys,
-              child: loading ? const CircularProgressIndicator() : const Text('Generate'),
+              child: loading ? const CircularProgressIndicator() : Text(l10n.generateKeys),
             )
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
+import '../../generated/l10n.dart';
 import '../../services/password_directory_prefs.dart';
 
 class SelectFolderScreen extends StatefulWidget {
@@ -38,25 +39,26 @@ class _SelectFolderScreenState extends State<SelectFolderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Выберите папку')),
+      appBar: AppBar(title: Text(l10n.selectFolder)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             ElevatedButton(
               onPressed: pickFolder,
-              child: const Text('Выбрать папку'),
+              child: Text(l10n.selectFolder),
             ),
             if (selectedPath != null) ...[
               const SizedBox(height: 12),
-              Text('Выбранная папка:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.selectedFolder, style: TextStyle(fontWeight: FontWeight.bold)),
               Text(selectedPath!),
             ],
             const Spacer(),
             ElevatedButton(
               onPressed: selectedPath != null && !loading ? confirmSelection : null,
-              child: loading ? const CircularProgressIndicator() : const Text('Продолжить'),
+              child: loading ? const CircularProgressIndicator() : Text(l10n.continue_),
             ),
           ],
         ),

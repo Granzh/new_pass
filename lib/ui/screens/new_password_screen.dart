@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../generated/l10n.dart';
 import '../../services/files/gpg_file_store.dart';
 import '../../services/storage/gpg_key_storage.dart';
 import '../../services/password_directory_prefs.dart';
@@ -32,7 +33,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   Future<void> _initializeGPG() async {
     final keys = await GPGKeyStorage().loadKeys();
     if (keys['private'] == null || keys['public'] == null || keys['passphrase'] == null) {
-      throw Exception('GPG ключи не найдены');
+      throw Exception('Keys not found');
     }
 
     _keyService = GPGKeyMemory(
@@ -46,6 +47,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
   }
 
   Future<void> _savePassword() async {
+    final l10n = S.of(context);
     final name = _nameController.text.trim();
     final content = _contentController.text.trim();
 
@@ -57,20 +59,20 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       final encrypted = await _passwordService.encrypt(content);
 
       final folderPath = await PasswordDirectoryPrefs.load();
-      if (folderPath == null) throw Exception('Папка не выбрана');
+      if (folderPath == null) throw Exception('Folder not selected');
 
       final storeService = GPGFileStore(root:Directory(folderPath));
       final relativePath = '$name.gpg';
       await storeService.writeEncrypted(relativePath, encrypted);
 
       if (context.mounted) {
-        Navigator.pop(context); // вернуться к списку паролей
+        Navigator.pop(context);
       }
     } catch (e) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Ошибка'),
+          title: Text(l10n.error),
           content: Text(e.toString()),
         ),
       );
@@ -81,24 +83,25 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Новый пароль')),
+      appBar: AppBar(title: Text(l10n.newPassword)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Имя (например: github/account)',
+              decoration: InputDecoration(
+                labelText: l10n.passwordName,
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _contentController,
               maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Содержимое (первая строка — пароль)',
+              decoration: InputDecoration(
+                labelText: l10n.passwordContent,
               ),
             ),
             const SizedBox(height: 24),
@@ -106,7 +109,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
               onPressed: _saving ? null : _savePassword,
               child: _saving
                   ? const CircularProgressIndicator()
-                  : const Text('Сохранить'),
+                  : Text(l10n.save),
             ),
           ],
         ),

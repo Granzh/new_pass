@@ -1,6 +1,7 @@
 // lib/ui/screens/password_list_screen.dart
 import 'package:flutter/material.dart';
 
+import '../../generated/l10n.dart';
 import '../../models/password_entry.dart';
 import '../../services/password_directory_prefs.dart';
 import '../../utils/file_utils.dart';
@@ -62,9 +63,10 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your passwords'),
+        title: Text(l10n.yourPasswords),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

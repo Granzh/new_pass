@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:new_pass/services/storage/gpg_key_storage.dart';
 import 'package:new_pass/services/password_directory_prefs.dart';
 import 'package:new_pass/services/password_manager_service.dart';
@@ -9,6 +10,7 @@ import 'package:new_pass/ui/screens/password_view_screen.dart';
 import 'package:new_pass/ui/screens/select_folder_screen.dart';
 
 import 'di/locator.dart';
+import 'generated/l10n.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +54,21 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const PasswordListScreen(),
         '/password/view': (context) => const PasswordViewScreen(),
         '/password/new': (context) => const NewPasswordScreen(),
+      },
+      localizationsDelegates: const [
+        S.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('ru'),
+      ],
+      localeResolutionCallback: (locale, supportedLocales) {
+        return supportedLocales.contains(locale)
+            ? locale
+            : supportedLocales.first;
       },
     );
   }
