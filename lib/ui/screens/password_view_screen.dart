@@ -37,12 +37,12 @@ class _PasswordViewScreenState extends State<PasswordViewScreen> {
         throw Exception('Ключи не найдены');
       }
 
-      final keyService = GPGKeyMemory();
-      await keyService.load(
-        privateKey: keys['private']!,
+      final keyService = GPGKeyMemory(
         publicKey: keys['public']!,
+        privateKey: keys['private']!,
         passphrase: keys['passphrase']!,
       );
+
 
       final passwordService = GPGEncryptionService(keyService);
       final decrypted = await passwordService.decrypt(encrypted);

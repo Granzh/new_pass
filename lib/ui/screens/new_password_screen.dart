@@ -35,12 +35,12 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       throw Exception('GPG ключи не найдены');
     }
 
-    _keyService = GPGKeyMemory();
-    await _keyService.load(
-      privateKey: keys['private']!,
+    _keyService = GPGKeyMemory(
       publicKey: keys['public']!,
+      privateKey: keys['private']!,
       passphrase: keys['passphrase']!,
     );
+
 
     _passwordService = GPGEncryptionService(_keyService);
   }

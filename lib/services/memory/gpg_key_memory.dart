@@ -5,6 +5,15 @@ class GPGKeyMemory {
   String? _privateKey;
   String? _passphrase;
 
+  GPGKeyMemory({
+    required String publicKey,
+    required String privateKey,
+    required String passphrase,
+  }) :
+      _publicKey = publicKey,
+      _privateKey = privateKey,
+      _passphrase = passphrase;
+
   Future<void> load({
     required String publicKey,
     required String privateKey,
