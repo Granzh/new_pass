@@ -20,7 +20,6 @@ void main() async {
   final folderPath = await PasswordDirectoryPrefs.load();
   final keys = await gpgService.loadKeys();
 
-  // определим, куда перекинуть при старте
   final String initialRoute;
   if (folderPath == null) {
     initialRoute = '/select-folder';
