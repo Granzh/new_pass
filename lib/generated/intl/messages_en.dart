@@ -59,7 +59,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "passwordName": MessageLookupByLibrary.simpleMessage(
       "Name (example: github/account)",
     ),
+    "refresh": MessageLookupByLibrary.simpleMessage("Refresh"),
     "save": MessageLookupByLibrary.simpleMessage("Save"),
+    "search": MessageLookupByLibrary.simpleMessage("Search"),
     "selectFolder": MessageLookupByLibrary.simpleMessage("Select folder"),
     "selectedFolder": MessageLookupByLibrary.simpleMessage("Selected folder"),
     "symbols": MessageLookupByLibrary.simpleMessage("Symbols"),

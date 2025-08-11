@@ -31,5 +31,7 @@
   "decryptionError": "Decryption error",
   "copied": "Copied",
   "passwordGeneratorTitle": "Password generator",
-  "generatePassword": "Generate password"
+  "generatePassword": "Generate password",
+  "search": "Search",
+  "refresh": "Refresh"
 }

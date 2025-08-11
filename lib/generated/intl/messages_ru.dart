@@ -62,7 +62,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "passwordName": MessageLookupByLibrary.simpleMessage(
       "Имя (например: github/account)",
     ),
+    "refresh": MessageLookupByLibrary.simpleMessage("Обновить"),
     "save": MessageLookupByLibrary.simpleMessage("Сохранить"),
+    "search": MessageLookupByLibrary.simpleMessage("Поиск"),
     "selectFolder": MessageLookupByLibrary.simpleMessage("Выбрать папку"),
     "selectedFolder": MessageLookupByLibrary.simpleMessage("Выбранная папка"),
     "symbols": MessageLookupByLibrary.simpleMessage("Символы"),

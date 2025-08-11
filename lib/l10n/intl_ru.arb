@@ -31,5 +31,7 @@
   "decryptionError": "Ошибка расшифровки",
   "copied": "Скопировано",
   "passwordGeneratorTitle": "Генератор пароля",
-  "generatePassword": "Сгенерировать пароль"
+  "generatePassword": "Сгенерировать пароль",
+  "search": "Поиск",
+  "refresh": "Обновить"
 }
