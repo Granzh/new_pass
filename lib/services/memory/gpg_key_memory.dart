@@ -5,6 +5,8 @@ class GPGKeyMemory {
   String? _privateKey;
   String? _passphrase;
 
+  GPGKeyMemory.empty();
+
   GPGKeyMemory({
     required String publicKey,
     required String privateKey,

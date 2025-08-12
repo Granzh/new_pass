@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:new_pass/services/keys/gpg_key_service.dart';
+import 'package:new_pass/services/memory/gpg_key_memory.dart';
+import 'package:new_pass/services/storage/gpg_key_storage.dart';
+import 'package:new_pass/ui/screens/gpg_keys_screen.dart';
 
 import 'generated/l10n.dart';
 import 'ui/screens/password_list_screen.dart';
@@ -10,18 +14,22 @@ import 'ui/screens/init_gpg_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  final keyMemory = GPGKeyMemory.empty();
+  final keyStorage = GPGKeyStorage();
+  final keyService = GPGKeyService(storage: keyStorage, memory: keyMemory);
+
+  runApp(MyApp(keyService: keyService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.keyService});
+  final GPGKeyService keyService;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      // ✅ Material 3 тема без конфликтов
       themeMode: ThemeMode.system,
       theme: ThemeData(
         useMaterial3: true,
@@ -63,7 +71,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      // ✅ Точки локализации
       localizationsDelegates: const [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -72,13 +79,13 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('en'), Locale('ru')],
 
-      // ✅ Роутинг: никакого вложенного MaterialApp
       initialRoute: '/',
       routes: {
         '/': (_) => const PasswordListScreen(),
         '/select-folder': (_) => const SelectFolderScreen(),
         '/password/new': (_) => const NewPasswordScreen(),
         '/password/view': (_) => const PasswordViewScreen(),
+        '/gpg_keys': (context) => GpgKeysScreen(keyService: keyService)
        // '/init-gpg': (_) => const InitGpgScreen(),
       },
     );
