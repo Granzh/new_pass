@@ -1,34 +1,41 @@
+import 'dart:convert';
+import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
+
 import 'package:openpgp/openpgp.dart';
 import 'package:logging/logging.dart';
 
 import '../memory/gpg_key_memory.dart';
 import '../storage/gpg_key_storage.dart';
+import '../sync/cloud_key_exporter.dart';
 
 class GPGKeyService {
   final Logger _log = Logger('GPGKeyService');
   final GPGKeyStorage storage;
   final GPGKeyMemory memory;
 
+  // Экспорт вынесен в отдельные сервисы через интерфейс
+  final List<CloudKeyExporter> exporters;
+
   GPGKeyService({
     required this.storage,
     required this.memory,
+    this.exporters = const [],
   });
 
-  Future<bool> loadFromStorage() async {
-    _log.info('Loading keys from secure storage');
+  // ------------------- Load & Generate -------------------
+  Future<bool> load() async {
+    _log.info('Loading keys from storage into memory');
     final map = await storage.loadKeys();
     final pub = map['public'];
     final priv = map['private'];
     final pass = map['passphrase'];
 
-    final ready = pub != null && priv != null && pass != null && pub.isNotEmpty && priv.isNotEmpty;
-    if (!ready) {
-      _log.info('No keys in storage');
+    if ((pub == null || pub.isEmpty) || (priv == null || priv.isEmpty)) {
+      _log.warning('No keys found in storage');
       return false;
     }
 
-    await memory
-        .load(publicKey: pub, privateKey: priv, passphrase: pass);
+    await memory.load(publicKey: pub, privateKey: priv, passphrase: pass ?? '');
     _log.info('Keys loaded to memory');
     return true;
   }
@@ -40,53 +47,97 @@ class GPGKeyService {
   }) async {
     _log.info('Generating new key pair for $name <$email>');
 
+    final keyPair = await OpenPGP.generate();
+    final publicKey = keyPair.publicKey;
+    final privateKey = keyPair.privateKey;
 
-    final keyPair = await OpenPGP.generate( //TODO: добавить options
-      );
-    // keyPair.privateKey, keyPair.publicKey
-    await storage.saveKeys(keyPair.privateKey, keyPair.publicKey, passphrase);
-    await memory.load(
-      publicKey: keyPair.publicKey,
-      privateKey: keyPair.privateKey,
-      passphrase: passphrase,
-    );
-    _log.info('Key pair generated & stored');
+    await storage.saveKeys(publicKey, privateKey, passphrase);
+    await memory.load(publicKey: publicKey, privateKey: privateKey, passphrase: passphrase);
+    _log.info('Key pair generated and saved');
   }
 
-  Future<void> importArmored({
-    required String publicKey,
-    required String privateKey,
-    required String passphrase,
+  // ------------------- Export (Local) -------------------
+  Future<Map<String, Uint8List>> exportAsFiles({
+    bool includePrivate = false,
+    String publicFileName = 'public.asc',
+    String privateFileName = 'private.asc',
   }) async {
-    _log.info('Importing armored keys');
+    final pub = await _getPublicKey();
+    if (pub == null || pub.isEmpty) {
+      throw StateError('Public key not found');
+    }
 
-    await storage.saveKeys(privateKey, publicKey, passphrase);
-    await memory.load(
-      publicKey: publicKey,
-      privateKey: privateKey,
-      passphrase: passphrase,
-    );
-    _log.info('Keys imported and loaded to memory');
+    final result = <String, Uint8List>{
+      publicFileName: Uint8List.fromList(utf8.encode(pub)),
+    };
+
+    if (includePrivate) {
+      final priv = await _getPrivateKey();
+      if (priv == null || priv.isEmpty) {
+        throw StateError('Private key not found');
+      }
+      result[privateFileName] = Uint8List.fromList(utf8.encode(priv));
+    }
+
+    return result;
   }
 
-  /// Экспорт: достаём из памяти, если пусто — из storage.
-  Future<String?> exportPublic() async {
-    if (memory.publicKey != null && memory.publicKey!.isNotEmpty) {
+  // ------------------- Export (Cloud via exporters) -------------------
+  // Императивно вызываем нужного экспортёра по id провайдера.
+  Future<CloudExportResult> exportToCloud({
+    required String providerId, // например: 'google-drive', 'dropbox', 'onedrive'
+    bool includePrivate = false,
+    String folderName = 'PassAppKeys',
+    String publicFileName = 'public.asc',
+    String privateFileName = 'private.asc',
+  }) async {
+    final exporter = exporters.firstWhere(
+          (e) => e.id == providerId,
+      orElse: () => throw StateError('No exporter registered for $providerId'),
+    );
+
+    final pub = await _getPublicKey();
+    if (pub == null || pub.isEmpty) {
+      throw StateError('Public key not found');
+    }
+
+    String? priv;
+    if (includePrivate) {
+      priv = await _getPrivateKey();
+      if (priv == null || priv.isEmpty) {
+        throw StateError('Private key not found');
+      }
+    }
+
+    final result = await exporter.exportKeys(
+      publicKeyArmored: pub,
+      privateKeyArmored: priv,
+      folderName: folderName,
+      publicFileName: publicFileName,
+      privateFileName: privateFileName,
+    );
+
+    _log.info('Exported keys via ${exporter.id} → $result');
+    return result;
+  }
+
+  // ------------------- Helpers -------------------
+  Future<String?> _getPublicKey() async {
+    if (memory.isInitialized && memory.publicKey!.isNotEmpty) {
       return memory.publicKey;
     }
     final map = await storage.loadKeys();
     return map['public'];
   }
 
-  Future<String?> exportPrivate() async {
-    if (memory.privateKey != null && memory.privateKey!.isNotEmpty) {
+  Future<String?> _getPrivateKey() async {
+    if (memory.isInitialized && memory.privateKey!.isNotEmpty) {
       return memory.privateKey;
     }
     final map = await storage.loadKeys();
     return map['private'];
   }
 
-  /// Удалить ключи везде.
   Future<void> deleteAll() async {
     _log.info('Deleting keys from storage & memory');
     await storage.clear();

@@ -30,7 +30,6 @@ class _SelectFolderScreenState extends State<SelectFolderScreen> {
 
     await PasswordDirectoryPrefs.save(selectedPath!);
 
-    // Здесь можно создать структуру папки или проверить её
 
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, '/init-gpg');
