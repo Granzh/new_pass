@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:new_pass/services/keys/gpg_key_service.dart';
 import 'package:new_pass/services/memory/gpg_key_memory.dart';
 import 'package:new_pass/services/storage/gpg_key_storage.dart';
+import 'package:new_pass/services/sync/google_drive_key_exporter.dart';
 import 'package:new_pass/ui/screens/gpg_keys_screen.dart';
 
 import 'generated/l10n.dart';
@@ -16,7 +17,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final keyMemory = GPGKeyMemory.empty();
   final keyStorage = GPGKeyStorage();
-  final keyService = GPGKeyService(storage: keyStorage, memory: keyMemory);
+  final driveExporter = GoogleDriveKeyExporter(
+    clientId: '<your-client-id>'
+  );
+
+  final keyService = GPGKeyService(
+      storage: keyStorage,
+      memory: keyMemory,
+      exporters: [driveExporter]
+  );
 
   runApp(MyApp(keyService: keyService));
 }

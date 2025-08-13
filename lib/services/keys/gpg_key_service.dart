@@ -13,7 +13,6 @@ class GPGKeyService {
   final GPGKeyStorage storage;
   final GPGKeyMemory memory;
 
-  // Экспорт вынесен в отдельные сервисы через интерфейс
   final List<CloudKeyExporter> exporters;
 
   GPGKeyService({
@@ -83,7 +82,10 @@ class GPGKeyService {
   }
 
   // ------------------- Export (Cloud via exporters) -------------------
-  // Императивно вызываем нужного экспортёра по id провайдера.
+  Future<String?> exportPublic() async => _getPublicKey();
+
+  Future<String?> exportPrivate() async => _getPrivateKey();
+
   Future<CloudExportResult> exportToCloud({
     required String providerId, // например: 'google-drive', 'dropbox', 'onedrive'
     bool includePrivate = false,

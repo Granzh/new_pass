@@ -166,7 +166,30 @@ class _GpgKeysScreenState extends State<GpgKeysScreen> {
     }
   }
 
-  Future<void> _onDelete() async {
+  
+  Future<void> _onExportToDrive({required bool includePrivate}) async {
+    setState(() => _loading = true);
+    try {
+      final result = await widget.keyService.exportToCloud(
+        providerId: 'google-drive',
+        includePrivate: includePrivate,
+        folderName: 'PassAppKeys',
+        publicFileName: 'public.asc',
+        privateFileName: 'private.asc',
+      );
+      if (!mounted) return;
+      setState(() => _loading = false);
+      final msg = includePrivate
+          ? 'Публичный и приватный ключи сохранены в Google Drive${result.folderUrl != null ? ' — ' + result.folderUrl! : ''}'
+          : 'Публичный ключ сохранён в Google Drive${result.folderUrl != null ? ' — ' + result.folderUrl! : ''}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _showError(e);
+    }
+  }
+Future<void> _onDelete() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -245,6 +268,21 @@ class _GpgKeysScreenState extends State<GpgKeysScreen> {
                   subtitle: 'Сохранить private_key.asc',
                   icon: Icons.lock_outline,
                   onTap: () => _onExport(privateKey: true),
+                _ActionCard(
+                  title: 'Экспорт в Google Drive (public)',
+                  subtitle: 'Загрузить public.asc в облако',
+                  icon: Icons.cloud_upload,
+                  onTap: () => _onExportToDrive(includePrivate: false),
+                  enabled: _hasKeys,
+                ),
+                _ActionCard(
+                  title: 'Экспорт в Google Drive (public+private)',
+                  subtitle: 'Загрузить public.asc и private.asc',
+                  icon: Icons.cloud_done,
+                  onTap: () => _onExportToDrive(includePrivate: true),
+                  enabled: _hasKeys,
+                ),
+
                   enabled: _hasKeys,
                 ),
                 _ActionCard(
