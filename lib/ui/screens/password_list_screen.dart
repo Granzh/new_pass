@@ -116,7 +116,6 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
         if (e.isFolder) {
           final children = walk(e.children);
           if (matches(e) || children.isNotEmpty) {
-            // пересобираем только нужные папки/детей
             result.add(PasswordEntry(
               name: e.name,
               fullPath: e.fullPath,

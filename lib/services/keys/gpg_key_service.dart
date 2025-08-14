@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
+import 'dart:typed_data';
 
 import 'package:openpgp/openpgp.dart';
 import 'package:logging/logging.dart';
@@ -51,7 +51,11 @@ class GPGKeyService {
     final privateKey = keyPair.privateKey;
 
     await storage.saveKeys(publicKey, privateKey, passphrase);
-    await memory.load(publicKey: publicKey, privateKey: privateKey, passphrase: passphrase);
+    await memory.load(
+        publicKey: publicKey,
+        privateKey: privateKey,
+        passphrase: passphrase
+    );
     _log.info('Key pair generated and saved');
   }
 

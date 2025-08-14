@@ -1,200 +1,246 @@
-import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:file_saver/file_saver.dart';
 
 import '../../services/keys/gpg_key_service.dart';
+import '../../services/sync/cloud_key_exporter.dart';
 
+/// Screen for managing GPG keys using the *new* GPGKeyService API.
+/// Focus: exporting keys to cloud (Google Drive via registered exporter) and to files.
 class GpgKeysScreen extends StatefulWidget {
-  const GpgKeysScreen({super.key, required this.keyService});
+  const GpgKeysScreen({super.key, required this.keyService, this.autoStartExport = false});
 
   final GPGKeyService keyService;
+  final bool autoStartExport;
 
   @override
   State<GpgKeysScreen> createState() => _GpgKeysScreenState();
 }
 
+enum _ExportMode { publicOnly, both }
+
 class _GpgKeysScreenState extends State<GpgKeysScreen> {
-  bool _loading = true;
+  bool _loading = false;
   bool _hasKeys = false;
 
   @override
   void initState() {
     super.initState();
-    _init();
-  }
+    _loadState();
 
-  Future<void> _init() async {
-    try {
-      final ok = await widget.keyService.loadFromStorage();
-      setState(() {
-        _hasKeys = ok || widget.keyService.hasKeys;
-        _loading = false;
+    // Optionally kick off export flow right after the first frame
+    if (widget.autoStartExport) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Ensure keys/service loaded
+        if (!_hasKeys) {
+          try {
+            await widget.keyService.load();
+            if (mounted) setState(() => _hasKeys = widget.keyService.hasKeys);
+          } catch (_) {}
+        }
+        if (mounted) await _exportToCloud();
       });
-    } catch (e) {
-      setState(() => _loading = false);
-      _showError(e);
     }
   }
 
-  void _showSnack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+  Future<void> _loadState() async {
+    setState(() => _loading = true);
+    try {
+      await widget.keyService.load();
+      setState(() => _hasKeys = widget.keyService.hasKeys);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  void _showError(Object e) {
-    _showSnack('Ошибка: $e');
-  }
+  void _showSnack(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(msg)),
+  );
 
-  Future<void> _onGenerate() async {
-    final res = await showDialog<_GenKeysResult>(
+  void _showError(Object e) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('$e'), backgroundColor: Theme.of(context).colorScheme.error),
+  );
+
+  Future<void> _generateKeys() async {
+    final res = await showDialog<_GenData>(
       context: context,
-      builder: (_) => const _GenerateKeysDialog(),
+      builder: (_) => const _GenerateDialog(),
     );
     if (res == null) return;
+
+    setState(() => _loading = true);
     try {
-      setState(() => _loading = true);
       await widget.keyService.generate(
         name: res.name,
         email: res.email,
         passphrase: res.passphrase,
       );
-      setState(() {
-        _hasKeys = true;
-        _loading = false;
-      });
       _showSnack('Ключи сгенерированы и сохранены');
+      setState(() => _hasKeys = true);
     } catch (e) {
-      setState(() => _loading = false);
       _showError(e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _onImport() async {
-    final choice = await showModalBottomSheet<_ImportMode>(
+  Future<void> _exportToFiles() async {
+    if (!_hasKeys) {
+      _showSnack('Сначала создайте или импортируйте ключи');
+      return;
+    }
+
+    final includePrivate = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Экспорт в файлы'),
+        content: const Text('Экспортировать только публичный ключ или оба?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Только публичный')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Публичный + приватный')),
+        ],
+      ),
+    );
+    if (includePrivate == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final Map<String, Uint8List> files = await widget.keyService.exportAsFiles(
+        includePrivate: includePrivate,
+      );
+
+      for (final entry in files.entries) {
+        // FileSaver: works for mobile/desktop/web
+        await FileSaver.instance.saveFile(
+          name: entry.key,
+          bytes: entry.value,
+          // Let FileSaver detect MIME by extension.
+        );
+      }
+
+      _showSnack(includePrivate
+          ? 'Экспортировано два файла: public.asc и private.asc'
+          : 'Экспортирован файл: public.asc');
+    } catch (e) {
+      _showError(e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _exportToCloud() async {
+    if (!_hasKeys) {
+      _showSnack('Сначала создайте или импортируйте ключи');
+      return;
+    }
+
+    final exporters = widget.keyService.exporters;
+    if (exporters.isEmpty) {
+      _showError('Нет доступных провайдеров для экспорта');
+      return;
+    }
+
+    // 1) choose provider if multiple
+    final CloudKeyExporter exporter = exporters.length == 1
+        ? exporters.first
+        : (await showModalBottomSheet<CloudKeyExporter>(
       context: context,
       showDragHandle: true,
-      builder: (_) => const _ImportPickerSheet(),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            const Text('Куда экспортировать?', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...exporters.map(
+                  (e) => ListTile(
+                leading: const Icon(Icons.cloud_outlined),
+                title: Text(e.label),
+                subtitle: Text(e.id),
+                onTap: () => Navigator.of(ctx).pop(e),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    )) ??
+        exporters.first;
+
+    // 2) choose mode (public or public+private)
+    final mode = await showModalBottomSheet<_ExportMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            const Text('Что экспортировать?', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.vpn_key_outlined),
+              title: const Text('Только публичный ключ'),
+              onTap: () => Navigator.of(ctx).pop(_ExportMode.publicOnly),
+            ),
+            ListTile(
+              leading: const Icon(Icons.all_inbox_outlined),
+              title: const Text('Публичный + приватный'),
+              onTap: () => Navigator.of(ctx).pop(_ExportMode.both),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
-    if (choice == null) return;
+    if (mode == null) return;
 
-    String? publicKey;
-    String? privateKey;
-    String? passphrase;
-
-    try {
-      switch (choice) {
-        case _ImportMode.files:
-          final result = await FilePicker.platform.pickFiles(allowMultiple: true);
-          if (result == null) return;
-          for (final f in result.files) {
-            final text = await File(f.path!).readAsString();
-            if (text.contains('BEGIN PGP PUBLIC KEY BLOCK')) publicKey = text;
-            if (text.contains('BEGIN PGP PRIVATE KEY BLOCK')) privateKey = text;
-          }
-          passphrase = await _askPassphrase();
-          break;
-        case _ImportMode.clipboard:
-          final text = await Clipboard.getData(Clipboard.kTextPlain);
-          final value = text?.text ?? '';
-          if (value.contains('BEGIN PGP PUBLIC KEY BLOCK')) publicKey = value;
-          if (value.contains('BEGIN PGP PRIVATE KEY BLOCK')) privateKey = value;
-          passphrase = await _askPassphrase();
-          break;
-        case _ImportMode.pasteBoth:
-          final res = await showDialog<_PasteBothResult>(
-            context: context,
-            builder: (_) => const _PasteBothDialog(),
-          );
-          if (res == null) return;
-          publicKey = res.publicKey.trim();
-          privateKey = res.privateKey.trim();
-          passphrase = res.passphrase;
-          break;
-      }
-
-      if (publicKey == null || privateKey == null) {
-        _showSnack('Не нашли оба ключа. Убедись, что выбраны public и private .asc');
-        return;
-      }
-
-      setState(() => _loading = true);
-      await widget.keyService.importArmored(
-        publicKey: publicKey,
-        privateKey: privateKey,
-        passphrase: passphrase,
+    // Confirm for private export
+    if (mode == _ExportMode.both) {
+      final sure = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Экспорт приватного ключа'),
+          content: const Text(
+              'Хранение приватного ключа в облаке потенциально рискованно. Продолжить?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Да, продолжить')),
+          ],
+        ),
       );
-      setState(() {
-        _hasKeys = true;
-        _loading = false;
-      });
-      _showSnack('Ключи импортированы');
-    } catch (e) {
-      setState(() => _loading = false);
-      _showError(e);
+      if (sure != true) return;
     }
-  }
 
-  Future<void> _onExport({required bool privateKey}) async {
-    try {
-      setState(() => _loading = true);
-      final data = privateKey
-          ? await widget.keyService.exportPrivate()
-          : await widget.keyService.exportPublic();
-      setState(() => _loading = false);
-      if (data == null || data.isEmpty) {
-        _showSnack('Ключ не найден');
-        return;
-      }
-
-      final extName = privateKey ? 'private_key' : 'public_key';
-      await FileSaver.instance.saveFile(
-        name: extName,
-        bytes: utf8.encode(data),
-        fileExtension: 'asc',
-        mimeType: MimeType.text,
-      );
-      _showSnack('Сохранено как $extName.asc');
-    } catch (e) {
-      setState(() => _loading = false);
-      _showError(e);
-    }
-  }
-
-  
-  Future<void> _onExportToDrive({required bool includePrivate}) async {
     setState(() => _loading = true);
     try {
       final result = await widget.keyService.exportToCloud(
-        providerId: 'google-drive',
-        includePrivate: includePrivate,
+        providerId: exporter.id,
+        includePrivate: mode == _ExportMode.both,
         folderName: 'PassAppKeys',
         publicFileName: 'public.asc',
         privateFileName: 'private.asc',
       );
-      if (!mounted) return;
-      setState(() => _loading = false);
-      final msg = includePrivate
-          ? 'Публичный и приватный ключи сохранены в Google Drive${result.folderUrl != null ? ' — ' + result.folderUrl! : ''}'
-          : 'Публичный ключ сохранён в Google Drive${result.folderUrl != null ? ' — ' + result.folderUrl! : ''}';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+      final link = result.folderUrl?.toString();
+      _showSnack(link == null
+          ? 'Экспорт завершён: ${exporter.label}'
+          : 'Экспорт завершён: ${exporter.label}\nПапка: $link');
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
       _showError(e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
-Future<void> _onDelete() async {
+
+  Future<void> _deleteAll() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Удалить ключи?'),
-        content: const Text('Действие необратимо. Убедись, что у тебя есть бэкап приватного ключа.'),
+        content: const Text('Ключи будут удалены из памяти и локального хранилища.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Удалить')),
@@ -203,186 +249,96 @@ Future<void> _onDelete() async {
     );
     if (ok != true) return;
 
+    setState(() => _loading = true);
     try {
-      setState(() => _loading = true);
       await widget.keyService.deleteAll();
-      setState(() {
-        _hasKeys = false;
-        _loading = false;
-      });
       _showSnack('Ключи удалены');
+      setState(() => _hasKeys = false);
     } catch (e) {
-      setState(() => _loading = false);
       _showError(e);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<String> _askPassphrase() async {
-    final res = await showDialog<String>(
-      context: context,
-      builder: (_) => const _PassphraseDialog(),
-    );
-    return res ?? '';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('GPG ключи')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+      appBar: AppBar(
+        title: const Text('GPG ключи'),
+        actions: [
+          IconButton(
+            tooltip: 'Экспорт в облако',
+            icon: const Icon(Icons.cloud_upload_outlined),
+            onPressed: _loading ? null : _exportToCloud,
+          ),
+        ],
+      ),
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(_hasKeys ? Icons.verified : Icons.error_outline),
-                const SizedBox(width: 8),
-                Text(_hasKeys ? 'Ключи настроены' : 'Ключи не найдены'),
-                const Spacer(),
-                IconButton(onPressed: _init, icon: const Icon(Icons.refresh)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _ActionCard(
-                  title: 'Импортировать',
-                  subtitle: 'Из файлов .asc, буфера или вставкой',
-                  icon: Icons.download,
-                  onTap: _onImport,
-                ),
-                _ActionCard(
-                  title: 'Экспортировать (public)',
-                  subtitle: 'Сохранить public_key.asc',
-                  icon: Icons.upload_file,
-                  onTap: () => _onExport(privateKey: false),
-                  enabled: _hasKeys,
-                ),
-                _ActionCard(
-                  title: 'Экспортировать (private)',
-                  subtitle: 'Сохранить private_key.asc',
-                  icon: Icons.lock_outline,
-                  onTap: () => _onExport(privateKey: true),
-                _ActionCard(
-                  title: 'Экспорт в Google Drive (public)',
-                  subtitle: 'Загрузить public.asc в облако',
-                  icon: Icons.cloud_upload,
-                  onTap: () => _onExportToDrive(includePrivate: false),
-                  enabled: _hasKeys,
-                ),
-                _ActionCard(
-                  title: 'Экспорт в Google Drive (public+private)',
-                  subtitle: 'Загрузить public.asc и private.asc',
-                  icon: Icons.cloud_done,
-                  onTap: () => _onExportToDrive(includePrivate: true),
-                  enabled: _hasKeys,
-                ),
-
-                  enabled: _hasKeys,
-                ),
-                _ActionCard(
-                  title: 'Сгенерировать',
-                  subtitle: 'Новая пара ключей',
-                  icon: Icons.key,
-                  onTap: _onGenerate,
-                ),
-                _ActionCard(
-                  title: 'Удалить',
-                  subtitle: 'Очистить ключи',
-                  icon: Icons.delete_outline,
-                  onTap: _onDelete,
-                  enabled: _hasKeys,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-    this.enabled = true,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final card = Card(
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: 260,
-            child: Row(
-              children: [
-                Icon(icon, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    return Opacity(opacity: enabled ? 1 : 0.5, child: card);
-  }
-}
-
-// ======= dialogs & sheets =======
-
-enum _ImportMode { files, clipboard, pasteBoth }
-
-class _ImportPickerSheet extends StatelessWidget {
-  const _ImportPickerSheet();
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            leading: const Icon(Icons.folder_open),
-            title: const Text('Из файлов (.asc)'),
-            onTap: () => Navigator.pop(context, _ImportMode.files),
+          Card(
+            child: ListTile(
+              leading: Icon(_hasKeys ? Icons.key_outlined : Icons.key_off_outlined,
+                  color: _hasKeys ? theme.colorScheme.primary : theme.disabledColor),
+              title: Text(_hasKeys ? 'Ключи готовы' : 'Ключи отсутствуют'),
+              subtitle: Text(_hasKeys
+                  ? 'Можно экспортировать в файлы или Google Drive'
+                  : 'Сгенерируйте новые ключи'),
+              trailing: _loading
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : null,
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.paste),
-            title: const Text('Из буфера обмена (один ключ)'),
-            subtitle: const Text('Скопируй public или private и вставь'),
-            onTap: () => Navigator.pop(context, _ImportMode.clipboard),
+
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                const ListTile(
+                  leading: Icon(Icons.build_outlined),
+                  title: Text('Управление ключами'),
+                ),
+                const Divider(height: 0),
+                ListTile(
+                  leading: const Icon(Icons.autorenew_outlined),
+                  title: const Text('Сгенерировать новую пару ключей'),
+                  subtitle: const Text('Имя, email, passphrase'),
+                  onTap: _loading ? null : _generateKeys,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.cloud_upload_outlined),
+                  title: const Text('Экспорт в облако…'),
+                  subtitle: Text(widget.keyService.exporters.isEmpty
+                      ? 'Нет подключённых провайдеров'
+                      : widget.keyService.exporters.map((e) => e.label).join(', ')),
+                  onTap: _loading ? null : _exportToCloud,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.file_upload_outlined),
+                  title: const Text('Экспорт в файлы…'),
+                  subtitle: const Text('public.asc и по желанию private.asc'),
+                  onTap: _loading ? null : _exportToFiles,
+                ),
+              ],
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.note_alt_outlined),
-            title: const Text('Вставить оба ключа вручную'),
-            onTap: () => Navigator.pop(context, _ImportMode.pasteBoth),
+
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_outlined),
+                  title: const Text('Удалить все ключи'),
+                  textColor: theme.colorScheme.error,
+                  iconColor: theme.colorScheme.error,
+                  onTap: _loading ? null : _deleteAll,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -390,185 +346,76 @@ class _ImportPickerSheet extends StatelessWidget {
   }
 }
 
-class _PassphraseDialog extends StatefulWidget {
-  const _PassphraseDialog();
-  @override
-  State<_PassphraseDialog> createState() => _PassphraseDialogState();
+class _GenData {
+  final String name;
+  final String email;
+  final String passphrase;
+  const _GenData(this.name, this.email, this.passphrase);
 }
 
-class _PassphraseDialogState extends State<_PassphraseDialog> {
-  final ctrl = TextEditingController();
-  bool hidden = true;
+class _GenerateDialog extends StatefulWidget {
+  const _GenerateDialog();
+
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Passphrase (если есть)'),
-      content: TextField(
-        controller: ctrl,
-        obscureText: hidden,
-        decoration: InputDecoration(
-          hintText: 'Введите passphrase',
-          suffixIcon: IconButton(
-            icon: Icon(hidden ? Icons.visibility : Icons.visibility_off),
-            onPressed: () => setState(() => hidden = !hidden),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, ''), child: const Text('Без пароля')),
-        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('ОК')),
-      ],
-    );
+  State<_GenerateDialog> createState() => _GenerateDialogState();
+}
+
+class _GenerateDialogState extends State<_GenerateDialog> {
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _pass = TextEditingController();
+  bool _valid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _name.addListener(_validate);
+    _email.addListener(_validate);
+    _pass.addListener(_validate);
   }
-}
 
-class _GenerateKeysDialog extends StatefulWidget {
-  const _GenerateKeysDialog();
-  @override
-  State<_GenerateKeysDialog> createState() => _GenerateKeysDialogState();
-}
-
-class _GenerateKeysDialogState extends State<_GenerateKeysDialog> {
-  final name = TextEditingController();
-  final email = TextEditingController();
-  final pass = TextEditingController();
-  bool hidden = true;
+  void _validate() {
+    final ok = _name.text.trim().isNotEmpty && _email.text.trim().isNotEmpty && _pass.text.isNotEmpty;
+    if (ok != _valid) setState(() => _valid = ok);
+  }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Сгенерировать ключи'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: name,
-                decoration: const InputDecoration(labelText: 'Имя (UID)')
-            ),
-            const SizedBox(height: 8),
-            TextField(
-                controller: email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email')
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: pass,
-              obscureText: hidden,
-              decoration: InputDecoration(
-                labelText: 'Passphrase',
-                suffixIcon: IconButton(
-                  icon: Icon(hidden ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => hidden = !hidden),
-                ),
-              ),
-            ),
-          ],
-        ),
+      title: const Text('Создать ключи'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Имя'),
+            textInputAction: TextInputAction.next,
+          ),
+          TextField(
+            controller: _email,
+            decoration: const InputDecoration(labelText: 'Email'),
+            textInputAction: TextInputAction.next,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          TextField(
+            controller: _pass,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Passphrase'),
+          ),
+        ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена'),
+        ),
         FilledButton(
-          onPressed: () {
-            if (name.text.trim().isEmpty || email.text.trim().isEmpty) return;
-            Navigator.pop(context, _GenKeysResult(
-              name: name.text.trim(),
-              email: email.text.trim(),
-              passphrase: pass.text,
-            ));
-          },
+          onPressed: _valid
+              ? () => Navigator.pop(context, _GenData(_name.text.trim(), _email.text.trim(), _pass.text))
+              : null,
           child: const Text('Создать'),
         ),
       ],
     );
   }
-}
-
-class _GenKeysResult {
-  final String name;
-  final String email;
-  final String passphrase;
-  const _GenKeysResult({required this.name, required this.email, required this.passphrase});
-}
-
-class _PasteBothDialog extends StatefulWidget {
-  const _PasteBothDialog();
-  @override
-  State<_PasteBothDialog> createState() => _PasteBothDialogState();
-}
-
-class _PasteBothDialogState extends State<_PasteBothDialog> {
-  final pub = TextEditingController();
-  final priv = TextEditingController();
-  final pass = TextEditingController();
-  bool hidden = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Вставь оба ключа'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: pub,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'PUBLIC KEY (-----BEGIN PGP PUBLIC KEY BLOCK-----)',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: priv,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'PRIVATE KEY (-----BEGIN PGP PRIVATE KEY BLOCK-----)',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: pass,
-              obscureText: hidden,
-              decoration: InputDecoration(
-                labelText: 'Passphrase',
-                suffixIcon: IconButton(
-                  icon: Icon(hidden ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => hidden = !hidden),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
-        FilledButton(
-          onPressed: () {
-            if (pub.text.contains('BEGIN PGP PUBLIC KEY') &&
-                priv.text.contains('BEGIN PGP PRIVATE KEY')) {
-              Navigator.pop(context, _PasteBothResult(
-                publicKey: pub.text,
-                privateKey: priv.text,
-                passphrase: pass.text,
-              ));
-            }
-          },
-          child: const Text('Импортировать'),
-        ),
-      ],
-    );
-  }
-}
-
-class _PasteBothResult {
-  final String publicKey;
-  final String privateKey;
-  final String passphrase;
-  const _PasteBothResult({
-    required this.publicKey,
-    required this.privateKey,
-    required this.passphrase,
-  });
 }
