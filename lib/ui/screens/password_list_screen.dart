@@ -1,13 +1,17 @@
 // lib/ui/screens/password_list_screen.dart
 import 'package:flutter/material.dart';
+import 'package:new_pass/services/sync/google_drive_key_exporter.dart';
 
 import '../../generated/l10n.dart';
 import '../../models/password_entry.dart';
+import '../../services/keys/gpg_key_service.dart';
 import '../../services/password_directory_prefs.dart';
 import '../../utils/file_utils.dart';
 
 import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
+
+import 'gpg_keys_screen.dart';
 
 // Если используешь локализацию S, можно раскомментировать и подставить строки
 // import '../../generated/l10n.dart';
@@ -17,7 +21,6 @@ import 'package:flutter/material.dart';
 // import '../../services/password_directory_prefs.dart';
 // import '../../utils/file_utils.dart';
 
-// Твоя модель
 class PasswordEntry {
   final String name;
   final String fullPath;
@@ -33,7 +36,8 @@ class PasswordEntry {
 }
 
 class PasswordListScreen extends StatefulWidget {
-  const PasswordListScreen({super.key});
+  final GPGKeyService keyService;
+  const PasswordListScreen({super.key, required this.keyService});
 
   @override
   State<PasswordListScreen> createState() => _PasswordListScreenState();
@@ -223,6 +227,8 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+
     final queryField = _SearchField(
       initial: _query,
       onChanged: (v) => setState(() => _query = v),
@@ -273,6 +279,21 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
                 tooltip: 'Обновить',
                 onPressed: _loadTree,
                 icon: const Icon(Icons.refresh),
+              ),
+              IconButton(
+                tooltip: 'Экспорт ключей в облако',
+                icon: const Icon(Icons.cloud_upload_outlined),
+                onPressed: () {
+                  // получаем инстанс сервиса как у тебя принято
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GpgKeysScreen(
+                        keyService: widget.keyService,
+                        autoStartExport: true,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(

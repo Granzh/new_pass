@@ -91,7 +91,7 @@ class GPGKeyService {
   Future<String?> exportPrivate() async => _getPrivateKey();
 
   Future<CloudExportResult> exportToCloud({
-    required String providerId, // например: 'google-drive', 'dropbox', 'onedrive'
+    required String providerId,
     bool includePrivate = false,
     String folderName = 'PassAppKeys',
     String publicFileName = 'public.asc',

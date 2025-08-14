@@ -90,7 +90,7 @@ class MyApp extends StatelessWidget {
 
       initialRoute: '/',
       routes: {
-        '/': (_) => const PasswordListScreen(),
+        '/': (_) => PasswordListScreen(keyService: keyService),
         '/select-folder': (_) => const SelectFolderScreen(),
         '/password/new': (_) => const NewPasswordScreen(),
         '/password/view': (_) => const PasswordViewScreen(),
