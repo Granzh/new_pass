@@ -5,9 +5,9 @@ import 'package:flutter/widgets.dart';
 
 
 class BackgroundClearPolicy {
-  final bool clearOnPaused;   // when app goes to background
-  final bool clearOnInactive; // e.g., overlay, call, split‑screen
-  final bool clearOnDetached; // app process detached
+  final bool clearOnPaused;
+  final bool clearOnInactive;
+  final bool clearOnDetached;
 
   const BackgroundClearPolicy({
     this.clearOnPaused = true,
@@ -16,7 +16,6 @@ class BackgroundClearPolicy {
   });
 }
 
-/// Internal holder that tracks expiry and provides zeroize.
 class _SecretToken {
   Uint8List value;
   DateTime expiresAt;
@@ -29,16 +28,12 @@ class _SecretToken {
     for (var i = 0; i < value.length; i++) {
       value[i] = 0;
     }
-    // Keep a zero‑length buffer to drop reference quickly.
     value = Uint8List(0);
   }
 }
 
-/// Signature for a UI‑level passphrase prompt.
-/// Return `null` if the user cancels.
 typedef PassphrasePrompt = Future<Uint8List?> Function(String keyId);
 
-/// An observable vault that stores passphrases per keyId.
 class PassphraseVault with ChangeNotifier, WidgetsBindingObserver {
   PassphraseVault({
     Duration defaultTtl = const Duration(minutes: 15),
@@ -76,8 +71,6 @@ class PassphraseVault with ChangeNotifier, WidgetsBindingObserver {
 
   void clearPerKeyTtl(String keyId) => _perKeyTtl.remove(keyId);
 
-  /// Insert/update a passphrase for a given key, resetting its TTL.
-  /// This *replaces* any existing passphrase after wiping it.
   void put(String keyId, Uint8List passphrase, {Duration? ttl}) {
     _wipe(keyId);
     final effectiveTtl = ttl ?? _perKeyTtl[keyId] ?? _defaultTtl;
@@ -85,15 +78,12 @@ class PassphraseVault with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  /// Returns a copy (to avoid exposing the internal buffer). Caller must
-  /// wipe their copy if they hold it beyond the immediate use.
   Uint8List? peek(String keyId) {
     final t = _secrets[keyId];
     if (t == null || t.isExpired) return null;
     return Uint8List.fromList(t.value);
   }
 
-  /// Touch (refresh TTL) for a key if it exists and not expired.
   void touch(String keyId) {
     final t = _secrets[keyId];
     if (t == null || t.isExpired) return;
@@ -102,13 +92,11 @@ class PassphraseVault with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  /// Lock (wipe) a single key.
   void lock(String keyId) {
     final changed = _wipe(keyId);
     if (changed) notifyListeners();
   }
 
-  /// Lock (wipe) all keys.
   void lockAll() {
     bool changed = false;
     for (final k in _secrets.keys.toList()) {

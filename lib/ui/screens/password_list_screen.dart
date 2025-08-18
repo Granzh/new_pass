@@ -1,4 +1,6 @@
 // lib/ui/screens/password_list_screen.dart
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:new_pass/services/sync/google_drive_key_exporter.dart';
 
@@ -13,13 +15,6 @@ import 'package:flutter/material.dart';
 
 import 'gpg_keys_screen.dart';
 
-// Если используешь локализацию S, можно раскомментировать и подставить строки
-// import '../../generated/l10n.dart';
-
-// Предполагаю, что у тебя уже есть эти утилиты/сервисы.
-// Если имена другие — просто поправь в _loadTree().
-// import '../../services/password_directory_prefs.dart';
-// import '../../utils/file_utils.dart';
 
 class PasswordEntry {
   final String name;
@@ -57,42 +52,95 @@ class _PasswordListScreenState extends State<PasswordListScreen> {
 
   Future<void> _loadTree() async {
     setState(() => _loading = true);
-    try {
-      // ↓↓↓ ЗАМЕНИ на свою загрузку дерева ↓↓↓
-      // final folderPath = await PasswordDirectoryPrefs.load();
-      // if (!mounted) return;
-      // if (folderPath == null) {
-      //   Navigator.pushReplacementNamed(context, '/select-folder');
-      //   return;
-      // }
-      // final tree = buildTree(folderPath); // должно вернуть корень PasswordEntry
-      // setState(() { _root = tree; });
 
-      // Временный заглушечный пример, чтобы экран не падал,
-      // удали после подключения своих сервисов:
-      final mock = PasswordEntry(
-        name: 'root',
-        fullPath: '/',
-        isFolder: true,
-        children: [
-          PasswordEntry(
-            name: 'work',
-            fullPath: '/work',
+    try {
+      final folderPath = await PasswordDirectoryPrefs.load();
+      if (folderPath == null) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/select-folder');
+        }
+        return;
+      }
+
+      final root = Directory(folderPath);
+      if (!await root.exists()) {
+        throw Exception('Папка не существует: $folderPath');
+      }
+
+      final entities = await root
+          .list(recursive: true, followLinks: false)
+          .where((e) => e is File && e.path.toLowerCase().endsWith('.gpg'))
+          .toList();
+
+      PasswordEntry buildTree() {
+        final Map<String, Map> folders = {};
+        final List<Map<String, dynamic>> leaves = [];
+
+        for (final e in entities) {
+          final file = e as File;
+          final rel = file.path.substring(root.path.length).replaceFirst(RegExp(r'^[\/\\]'), '');
+          final parts = rel.split(RegExp(r'[\/\\]'));
+
+          final fileName = parts.removeLast();
+          Map node = folders;
+          String accPath = root.path;
+          for (final part in parts) {
+            accPath = p.join(accPath, part);
+            node = node.putIfAbsent(part, () => <String, dynamic>{}) as Map;
+            node['__path'] ??= accPath;
+          }
+          leaves.add({
+            'name': fileName.replaceAll('.gpg', ''),
+            'fullPath': file.path,
+            'parent': parts.isEmpty ? null : parts.join('/'),
+          });
+        }
+
+        PasswordEntry buildNode(String name, Map nodeMap) {
+          final String fullPath = (nodeMap['__path'] as String?) ?? root.path;
+          final children = <PasswordEntry>[];
+
+          for (final entry in nodeMap.entries) {
+            if (entry.key == '__path') continue;
+            children.add(buildNode(entry.key, entry.value as Map));
+          }
+
+          for (final f in leaves.where((m) => m['parent'] == null && name == 'root' ||
+              (m['parent'] != null && p.join(root.path, m['parent']) == fullPath))) {
+            children.add(PasswordEntry(
+              name: f['name'] as String,
+              fullPath: f['fullPath'] as String,
+              isFolder: false,
+            ));
+          }
+
+          children.sort((a, b) {
+            if (a.isFolder != b.isFolder) return a.isFolder ? -1 : 1;
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
+
+          return PasswordEntry(
+            name: name == 'root' ? p.basename(root.path) : name,
+            fullPath: fullPath,
             isFolder: true,
-            children: const [
-              PasswordEntry(name: 'jira', fullPath: '/work/jira.gpg', isFolder: false),
-              PasswordEntry(name: 'email', fullPath: '/work/email.gpg', isFolder: false),
-            ],
-          ),
-          const PasswordEntry(name: 'github', fullPath: '/github.gpg', isFolder: false),
-          const PasswordEntry(name: 'bank', fullPath: '/bank.gpg', isFolder: false),
-        ],
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+            children: children,
+          );
+        }
+
+        final rootMap = <String, dynamic>{'__path': root.path, ...folders};
+        return buildNode('root', rootMap);
+      }
+
+      setState(() {
+        _root = buildTree();
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
       if (!mounted) return;
-      _root = mock;
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка загрузки: $e')),
+      );
     }
   }
 
